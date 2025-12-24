@@ -1,7 +1,7 @@
 from sqlmodel import SQLModel, Field, create_engine, Session
 from datetime import datetime
-from typing import Optional, List
-from app.settings.settings import DATA_BASE_PATH
+from typing import Optional
+from settings.settings import DATA_BASE_PATH
 
 
 class Logs(SQLModel, table=True):

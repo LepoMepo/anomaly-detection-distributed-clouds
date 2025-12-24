@@ -1,19 +1,22 @@
-from fastapi import FastAPI, HTTPException, status, Depends, Request
+from fastapi import FastAPI, HTTPException, status, Depends, Header, Request
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import PlainTextResponse
 from contextlib import asynccontextmanager
 from sqlmodel import Session, select, text
 
-from app.settings.settings import MODEL_PATH, THRESHOLD_PATH
-from app.settings.pydantic_models import PredictionRequest, PredictionResponse, HistoryResponse, StatsResponse, DBItems
-from app.database.database import Logs, create_db_and_tables, get_session
+from settings.settings import MODEL_PATH, THRESHOLD_PATH, HISTORY_DELETE_TOKEN
+from settings.pydantic_models import PredictionRequest, PredictionResponse, HistoryResponse, StatsResponse, DBItems
+from database.database import Logs, create_db_and_tables, get_session
 
 import joblib
+import pathlib
 
 # библиотеки для работы модели
 from sklearn.base import BaseEstimator, TransformerMixin
 from drain3 import TemplateMiner
 from drain3.template_miner_config import TemplateMinerConfig
 from drain3.file_persistence import FilePersistence
-from app.model.LogTransformer import LogTransformer
+from model.LogTransformer import LogTransformer
 import pandas as pd
 
 from time import perf_counter
@@ -23,21 +26,41 @@ from time import perf_counter
 async def lifespan(app: FastAPI):
     import __main__
     __main__.LogTransformer = LogTransformer
+
     try:
+        # Подменяем WindowsPath на Path, чтобы joblib мог распаковать модель с Windows
+        original_windows_path = pathlib.WindowsPath
+        pathlib.WindowsPath = pathlib.Path
+
         with open(MODEL_PATH, "rb") as f:
             app.state.model = joblib.load(f)
         with open(THRESHOLD_PATH, "rb") as f:
             app.state.threshold = joblib.load(f)
-    except Exception:
+
+        # Возвращаем обратно
+        pathlib.WindowsPath = original_windows_path
+
+    except Exception as e:
         app.state.model = None
         app.state.threshold = None
+        print("Error loading model:", repr(e))
+
+        try:
+            pathlib.WindowsPath = original_windows_path
+        except Exception:
+            pass
 
     create_db_and_tables()
-
     yield
 
 
 app = FastAPI(lifespan=lifespan)
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    return PlainTextResponse("bad request", status_code=400)
+
 
 @app.post("/forward", response_model=PredictionResponse)
 def forward_prediction(request: PredictionRequest, session: Session = Depends(get_session)):
@@ -108,6 +131,20 @@ def get_history(session: Session = Depends(get_session)):
             status_code=status.HTTP_403_FORBIDDEN,
             detail=f"problem with db"
         )
+
+
+@app.delete("/history")
+def delete_history(session: Session = Depends(get_session),
+                   confirm_token: str = Header(default=None)):
+    if confirm_token is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="bad request")
+    if confirm_token != HISTORY_DELETE_TOKEN:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="forbidden")
+
+    session.execute(text("DELETE FROM logs"))
+    session.commit()
+    return {"status": "ok"}
+
 
 @app.get('/stats', response_model=StatsResponse)
 def get_stats(session: Session = Depends(get_session)):
