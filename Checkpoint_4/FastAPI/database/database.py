@@ -2,6 +2,7 @@ from sqlmodel import SQLModel, Field, create_engine, Session
 from datetime import datetime
 from typing import Optional
 from settings.settings import DATA_BASE_DIR
+import os
 
 
 class Logs(SQLModel, table=True):
@@ -14,6 +15,8 @@ class Logs(SQLModel, table=True):
     execution_time: float
     token_count: int
 
+
+os.makedirs(DATA_BASE_DIR, exist_ok=True)
 
 DATABASE_URL = f"sqlite:///{DATA_BASE_DIR}/logs.db"
 engine = create_engine(DATABASE_URL, echo=True)
