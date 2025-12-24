@@ -1,11 +1,11 @@
 from sqlmodel import SQLModel, Field, create_engine, Session
 from datetime import datetime
-from typing import Optional, List
-from app.settings.settings import DATA_BASE_PATH
+from typing import Optional
+from settings.settings import DATA_BASE_DIR
 
 
 class Logs(SQLModel, table=True):
-    __tablename__ = 'logs'
+    __tablename__ = "logs"
     id: Optional[int] = Field(default=None, primary_key=True)
     input_data: Optional[str]
     result: Optional[str] = None
@@ -14,7 +14,8 @@ class Logs(SQLModel, table=True):
     execution_time: float
     token_count: int
 
-DATABASE_URL = f'sqlite:///{DATA_BASE_PATH}/logs.db'
+
+DATABASE_URL = f"sqlite:///{DATA_BASE_DIR}/logs.db"
 engine = create_engine(DATABASE_URL, echo=True)
 
 
