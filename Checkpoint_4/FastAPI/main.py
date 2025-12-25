@@ -1,10 +1,13 @@
 from fastapi import FastAPI, HTTPException, status, Depends, Request, Header
+from fastapi.exceptions import RequestValidationError
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from contextlib import asynccontextmanager
 from sqlmodel import Session, select, text
 from typing import Optional
 import pickle
 from pathlib import Path
+
+from starlette.responses import PlainTextResponse
 
 from settings.settings import MODEL_PATH, THRESHOLD_PATH
 from settings.pydantic_models import (
@@ -164,6 +167,11 @@ app = FastAPI(
 )
 
 
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    return PlainTextResponse("bad request", status_code=400)
+
+
 @app.post("/forward", response_model=PredictionResponse)
 def forward_prediction(
     request: PredictionRequest,
@@ -298,6 +306,23 @@ def get_history(
     except Exception:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, detail=f"problem with db"
+        )
+
+
+@app.delete("/history")
+def delete_history(session: Session = Depends(get_session), current_user: str = Depends(require_auth)):
+    """
+    Удаление истории предсказаний.
+
+    Требует аутентификации через Bearer token.
+    """
+    try:
+        session.execute(text("DELETE FROM logs"))
+        session.commit()
+        return {"status": "ok"}
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="problem with db"
         )
 
 
