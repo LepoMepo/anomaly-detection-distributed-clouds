@@ -28,7 +28,7 @@ class Logs(SQLModel, table=True):
 
 os.makedirs(DATA_BASE_DIR, exist_ok=True)
 
-DATABASE_URL = f'sqlite+aiosqlite:///{DATA_BASE_PATH}/logs.db'
+DATABASE_URL = f'sqlite+aiosqlite:///{DATA_BASE_DIR}/logs.db'
 engine = create_async_engine(DATABASE_URL, echo=True)
 
 async_session_maker = async_sessionmaker(
