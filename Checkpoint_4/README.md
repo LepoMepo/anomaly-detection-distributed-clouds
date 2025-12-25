@@ -3,8 +3,17 @@
 
 ## Краткое описание выполненного этапа (Checkpoint 4)
 
+Вклад участников:
+1. Ванюшин Павел - реализован базовый функционал (эндпоинты `/forward`, `/history`, `/stats`)
+Обучение парсера данных drain и модели Isolation Forest. Реализация базы данных SQLite.
+2. Иванов Артём - реализован механизм авторизации при помощи JWT. 
+Упаковывание приложения в Docker контейнер. Реализация дополнительных эндпоинтов `/refresh`, `/health`.
+3. Богданов Андрей - реализован эндпоинт `DELETE` `/history`. 
+Добавлен хендлер, заменяющий стандартную ошибку 422, которую FastAPI возвращает при ошибке валидации, 
+на 400 в соответствии с заданием.
+
 **Описание и ссылки:**
-1. Приложение на FastAPI с эндпоинтами `/forward`, `/history`, `/stats`, `/refresh`, `/health`. 
+Приложение на FastAPI с эндпоинтами `/forward`, `/history`, `/stats`, `/refresh`, `/health`, `/delete`. 
 Версия python 3.11 (в ином случае модель не запустится).
 Использует сырые логи для предсказания, один запрос должен в себя включать временной промежуток не более 10 секунд.
 Пример json файла приведен в папке ([тут](https://github.com/LepoMepo/anomaly-detection-distributed-clouds/blob/main/Checkpoint_4/FastAPI/json_example.json)).
@@ -33,7 +42,7 @@ docker-compose up --build
 ```bash
 cd FastAPI
 docker build -t anomaly-detection-api .
-docker run -p 8000:8000 anomaly-detection-api
+docker run -p 8000:8000 --env-file .env anomaly-detection-api
 ```
 
 После запуска API доступен по адресу: http://localhost:8000
@@ -84,6 +93,9 @@ curl -X POST http://localhost:8000/forward \
 ### GET /history — История предсказаний
 Требует Bearer токен в заголовке.
 
+### DELETE /history - Удаление истории обращений из базы данных
+Требует confirm-token в заголовке.
+
 ### GET /stats — Статистика
 Требует Bearer токен в заголовке.
 
@@ -98,10 +110,10 @@ curl -X POST http://localhost:8000/forward \
 
 | Переменная | Описание | Значение по умолчанию |
 |------------|----------|----------------------|
-| SECRET_KEY | Секретный ключ для JWT |jFlsj.&93-9ekKFJN^#fdGhs5FD5-*jfd34332 |
-| ALGORITHM | Алгоритм шифрования | HS256 |
-| ACCESS_TOKEN_EXPIRE_MINUTES | Время жизни access токена | 30 |
-| REFRESH_TOKEN_EXPIRE_DAYS | Время жизни refresh токена | 7 |
+| SECRET_KEY | Секретный ключ для JWT | your_token           |
+| ALGORITHM | Алгоритм шифрования | HS256                |
+| ACCESS_TOKEN_EXPIRE_MINUTES | Время жизни access токена | 30                   |
+| REFRESH_TOKEN_EXPIRE_DAYS | Время жизни refresh токена | 7                    |
 
 ## Участники:
 - <Участник 1, Иванов Артём> — @Vanarti, Vanarty
