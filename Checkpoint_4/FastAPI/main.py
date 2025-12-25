@@ -1,5 +1,7 @@
 from fastapi import FastAPI, HTTPException, status, Depends, Request, Header
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import PlainTextResponse
 from contextlib import asynccontextmanager
 from sqlmodel import Session, select, text
 from typing import Optional
@@ -7,7 +9,7 @@ import pickle
 from pathlib import Path
 import os
 
-from settings.settings import MODEL_PATH, THRESHOLD_PATH
+from settings.settings import MODEL_PATH, THRESHOLD_PATH, HISTORY_DELETE_TOKEN
 from settings.pydantic_models import (
     PredictionRequest,
     PredictionResponse,
@@ -154,7 +156,7 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         app.state.model = None
         app.state.threshold = None
-        print(f"Error loading model: {e}")
+        print(f"Error loading model: {repr(e)}")
     await create_db_and_tables()
 
     yield
@@ -166,6 +168,12 @@ app = FastAPI(
     description="API для обнаружения аномалий в логах с JWT аутентификацией",
     version="0.1.0",
 )
+
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    return PlainTextResponse("bad request", status_code=400)
 
 
 @app.post("/forward", response_model=PredictionResponse)
@@ -305,6 +313,18 @@ async def get_history(
             status_code=status.HTTP_403_FORBIDDEN, detail=f"problem with db"
         )
 
+
+@app.delete("/history")
+def delete_history(session: Session = Depends(get_session),
+                   confirm_token: str = Header(default=None)):
+    if confirm_token is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="bad request")
+    if confirm_token != HISTORY_DELETE_TOKEN:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="forbidden")
+
+    session.execute(text("DELETE FROM logs"))
+    session.commit()
+    return {"status": "ok"}
 
 @app.get("/stats", response_model=StatsResponse)
 async def get_stats(
