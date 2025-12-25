@@ -10,12 +10,13 @@ from sqlalchemy.ext.asyncio import (
 )
 from sqlmodel.ext.asyncio.session import AsyncSession
 from datetime import datetime
-from typing import Optional, List
-from settings.settings import DATA_BASE_PATH
+from typing import Optional
+from settings.settings import DATA_BASE_DIR
+import os
 
 
 class Logs(SQLModel, table=True):
-    __tablename__ = 'logs'
+    __tablename__ = "logs"
     id: Optional[int] = Field(default=None, primary_key=True)
     input_data: Optional[str]
     result: Optional[str] = None
@@ -23,6 +24,9 @@ class Logs(SQLModel, table=True):
     probability: float
     execution_time: float
     token_count: int
+
+
+os.makedirs(DATA_BASE_DIR, exist_ok=True)
 
 DATABASE_URL = f'sqlite+aiosqlite:///{DATA_BASE_PATH}/logs.db'
 engine = create_async_engine(DATABASE_URL, echo=True)
@@ -32,7 +36,6 @@ async_session_maker = async_sessionmaker(
     expire_on_commit=False,
     class_=AsyncSession,
 )
-
 
 async def get_session():
     async with async_session_maker() as session:
