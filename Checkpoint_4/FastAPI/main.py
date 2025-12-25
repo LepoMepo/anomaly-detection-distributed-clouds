@@ -2,9 +2,9 @@ from fastapi import FastAPI, HTTPException, status, Depends, Request
 from contextlib import asynccontextmanager
 from sqlmodel import Session, select, text
 
-from app.settings.settings import MODEL_PATH, THRESHOLD_PATH
-from app.settings.pydantic_models import PredictionRequest, PredictionResponse, HistoryResponse, StatsResponse, DBItems
-from app.database.database import Logs, create_db_and_tables, get_session
+from settings.settings import MODEL_PATH, THRESHOLD_PATH
+from settings.pydantic_models import PredictionRequest, PredictionResponse, HistoryResponse, StatsResponse, DBItems
+from database.database import Logs, create_db_and_tables, get_session
 
 import joblib
 
@@ -13,7 +13,7 @@ from sklearn.base import BaseEstimator, TransformerMixin
 from drain3 import TemplateMiner
 from drain3.template_miner_config import TemplateMinerConfig
 from drain3.file_persistence import FilePersistence
-from app.model.LogTransformer import LogTransformer
+from model.LogTransformer import LogTransformer
 import pandas as pd
 
 from time import perf_counter
@@ -32,7 +32,7 @@ async def lifespan(app: FastAPI):
         app.state.model = None
         app.state.threshold = None
 
-    create_db_and_tables()
+    await create_db_and_tables()
 
     yield
 
@@ -40,7 +40,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 
 @app.post("/forward", response_model=PredictionResponse)
-def forward_prediction(request: PredictionRequest, session: Session = Depends(get_session)):
+async def forward_prediction(request: PredictionRequest, session: Session = Depends(get_session)):
     start_time = perf_counter()
     if app.state.model is None or app.state.threshold is None:
         raise HTTPException(
@@ -76,8 +76,8 @@ def forward_prediction(request: PredictionRequest, session: Session = Depends(ge
     )
 
     session.add(db_request)
-    session.commit()
-    session.refresh(db_request)
+    await session.commit()
+    await session.refresh(db_request)
 
     return PredictionResponse(
         prediction = "Anomaly" if prediction_if == 1 else "Normal",
@@ -86,10 +86,10 @@ def forward_prediction(request: PredictionRequest, session: Session = Depends(ge
 
 
 @app.get("/history", response_model=HistoryResponse)
-def get_history(session: Session = Depends(get_session)):
+async def get_history(session: Session = Depends(get_session)):
     try:
         statement = select(Logs)
-        results = session.exec(statement).all()
+        results = await session.exec(statement).all()
         serialized_result = {}
         for log in results:
             serialized_result[log.id] = DBItems(
@@ -110,10 +110,10 @@ def get_history(session: Session = Depends(get_session)):
         )
 
 @app.get('/stats', response_model=StatsResponse)
-def get_stats(session: Session = Depends(get_session)):
+async def get_stats(session: Session = Depends(get_session)):
     try:
         sql_command = text('SELECT execution_time, token_count FROM logs')
-        result = session.execute(sql_command).fetchall()
+        result = await session.execute(sql_command).fetchall()
         df_result = pd.DataFrame(result, columns=['execution_time', 'token_count'])
         mean_execution_time = df_result['execution_time'].mean()
         q50 = df_result['execution_time'].quantile(0.5)
