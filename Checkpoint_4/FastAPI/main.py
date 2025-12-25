@@ -5,6 +5,7 @@ from sqlmodel import Session, select, text
 from typing import Optional
 import pickle
 from pathlib import Path
+import os
 
 from settings.settings import MODEL_PATH, THRESHOLD_PATH
 from settings.pydantic_models import (
@@ -55,6 +56,9 @@ class UniversalUnpickler(pickle.Unpickler):
 def load_model_safely(model_path):
     """Безопасная загрузка модели с WindowsPath"""
     model_path = Path(model_path)
+
+    if os.name == 'nt':
+        return joblib.load(model_path)
 
     # Способ 1: Через кастомный unpickler
     try:
