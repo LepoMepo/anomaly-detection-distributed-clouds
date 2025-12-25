@@ -3,13 +3,15 @@ from typing import Optional
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 import os
+from settings.settings import Settings
 
+settings = Settings()
 
 # Настройки JWT
-SECRET_KEY = os.getenv("SECRET_KEY", "jFlsj.&93-9ekKFJN^#fdGhs5FD5-*jfd34332")
-ALGORITHM = os.getenv("ALGORITHM", "HS256")
-ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
-REFRESH_TOKEN_EXPIRE_DAYS = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", "7"))
+SECRET_KEY = settings.jwt_secret_key.get_secret_value()
+ALGORITHM = settings.jwt_algorithm
+ACCESS_TOKEN_EXPIRE_MINUTES = float(settings.jwt_access_token_expire_minutes)
+REFRESH_TOKEN_EXPIRE_DAYS = float(settings.jwt_refresh_token_expire_days)
 
 # Хеширование паролей
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")

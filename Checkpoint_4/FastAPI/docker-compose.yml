@@ -10,11 +10,8 @@ services:
       - "8080:8000"
     volumes:
       - db_data:/app/db_data
-    environment:
-      - SECRET_KEY=${SECRET_KEY:-jFlsj.&93-9ekKFJN^#fdGhs5FD5-*jfd34332}
-      - ALGORITHM=${ALGORITHM:-HS256}
-      - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES:-30}
-      - REFRESH_TOKEN_EXPIRE_DAYS=${REFRESH_TOKEN_EXPIRE_DAYS:-7}
+    env_file:
+      - .env
     restart: unless-stopped
 
 volumes:

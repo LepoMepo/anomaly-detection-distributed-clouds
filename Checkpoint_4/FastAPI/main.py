@@ -9,7 +9,7 @@ import pickle
 from pathlib import Path
 import os
 
-from settings.settings import MODEL_PATH, THRESHOLD_PATH, HISTORY_DELETE_TOKEN
+from settings.settings import MODEL_PATH, THRESHOLD_PATH, Settings
 from settings.pydantic_models import (
     PredictionRequest,
     PredictionResponse,
@@ -152,6 +152,8 @@ async def lifespan(app: FastAPI):
         # TO DO временный костыль для загрузки модели
         app.state.model = load_model_safely(MODEL_PATH)
         app.state.threshold = load_model_safely(THRESHOLD_PATH)
+        settings = Settings()
+        app.state.history_delete_token = settings.history_delete_token.get_secret_value()
 
     except Exception as e:
         app.state.model = None
@@ -319,7 +321,7 @@ async def delete_history(session: Session = Depends(get_session),
                    confirm_token: str = Header(default=None)):
     if confirm_token is None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="bad request")
-    if confirm_token != HISTORY_DELETE_TOKEN:
+    if confirm_token != app.state.history_delete_token:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="forbidden")
 
     await session.execute(text("DELETE FROM logs"))
