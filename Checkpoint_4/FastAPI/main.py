@@ -89,7 +89,8 @@ async def forward_prediction(request: PredictionRequest, session: Session = Depe
 async def get_history(session: Session = Depends(get_session)):
     try:
         statement = select(Logs)
-        results = await session.exec(statement).all()
+        results = await (session.exec(statement))
+        results = results.all()
         serialized_result = {}
         for log in results:
             serialized_result[log.id] = DBItems(
@@ -103,17 +104,18 @@ async def get_history(session: Session = Depends(get_session)):
         return HistoryResponse(
             id = serialized_result
         )
-    except Exception:
+    except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"problem with db"
+            detail=f"problem with db {e}"
         )
 
 @app.get('/stats', response_model=StatsResponse)
 async def get_stats(session: Session = Depends(get_session)):
     try:
         sql_command = text('SELECT execution_time, token_count FROM logs')
-        result = await session.execute(sql_command).fetchall()
+        result = await (session.execute(sql_command))
+        result = result.fetchall()
         df_result = pd.DataFrame(result, columns=['execution_time', 'token_count'])
         mean_execution_time = df_result['execution_time'].mean()
         q50 = df_result['execution_time'].quantile(0.5)
