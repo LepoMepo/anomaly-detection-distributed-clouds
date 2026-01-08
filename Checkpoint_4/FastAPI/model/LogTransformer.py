@@ -4,7 +4,6 @@ from drain3.template_miner_config import TemplateMinerConfig
 from drain3.file_persistence import FilePersistence
 import re
 import pandas as pd
-import joblib
 
 
 class LogTransformer(BaseEstimator, TransformerMixin):
