@@ -2,15 +2,18 @@ from pathlib import Path
 from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-import os
 
 APP_DIR = Path(__file__).resolve().parent.parent
 
 MODEL_DIR = APP_DIR / "model"
 DATA_BASE_DIR = APP_DIR / "db_data"
 
-MODEL_PATH = MODEL_DIR / "model.joblib"
-THRESHOLD_PATH = MODEL_DIR / "threshold.joblib"
+IF_MODEL_PATH = MODEL_DIR / "model.joblib"
+IF_THRESHOLD_PATH = MODEL_DIR / "threshold.joblib"
+
+LSTM_MODEL_PATH = MODEL_DIR / "lstm_model.pt"
+LSTM_TRANSFORMER_PATH = MODEL_DIR / "sequence_transformer.joblib"
+
 DRAIN_STATE_PATH = Path("../model/drain3_state.bin")
 DRAIN_CONFIG_PATH = Path("../model/drain3.ini")
 
