@@ -147,7 +147,7 @@ def main():
         "threshold": [],
         "test_precision": [],
         "test_recall": [],
-    "test_f1": [],
+        "test_f1": []
     }
 
     # Основной цикл обучения
