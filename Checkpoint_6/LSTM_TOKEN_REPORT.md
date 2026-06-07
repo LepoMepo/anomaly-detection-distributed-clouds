@@ -48,7 +48,65 @@ block_score = max(-log P(true_next_event))
 - `fpr` = 0.0049
 - `average precision` = 0.975
 
-## 5. Подготовка данных
+## 5. Ablation на предыдущей one-step LSTM
+
+Дополнительно те же стратегии подсчета anomaly score были применены к предыдущей LSTM из Checkpoint 5, которая
+предсказывает только следующий event после окна:
+
+```text
+[e1, e2, ..., e10] -> e11
+```
+
+Цель эксперимента - отделить вклад новой many-to-many архитектуры от вклада нового способа scoring. Для всех стратегий
+порог подбирался только на validation, после чего итоговые метрики считались на test.
+
+Итог для `topk_miss`:
+- `threshold` = 0.0909
+- `precision` = 0.795
+- `recall` = 0.781
+- `f1` = 0.788
+- `fpr` = 0.0269
+- `average precision` = 0.787
+
+Итог для `nll_mean`:
+- `threshold` = 0.8501
+- `precision` = 0.969
+- `recall` = 0.872
+- `f1` = 0.918
+- `fpr` = 0.0038
+- `average precision` = 0.982
+
+Итог для `nll_p95`:
+- `threshold` = 3.9213
+- `precision` = 0.975
+- `recall` = 0.884
+- `f1` = 0.927
+- `fpr` = 0.0030
+- `average precision` = 0.975
+
+Итог для `nll_max`:
+- `threshold` = 6.3025
+- `precision` = 0.976
+- `recall` = 0.924
+- `f1` = 0.950
+- `fpr` = 0.0030
+- `average precision` = 0.986
+
+Результат показывает, что основной прирост качества связан не только с переходом к many-to-many next-token модели,
+но и с заменой грубого `top-k miss` score на вероятностный NLL-based score. Предыдущая one-step LSTM тоже поддерживает
+такой способ подсчета, потому что ее `CrossEntropyLoss` соответствует минимизации `-log P(true_next_event)`.
+
+На текущем прогоне лучший практический вариант по test F1 - previous one-step LSTM с `nll_max` scoring:
+
+```text
+test_f1 = 0.950
+average_precision = 0.986
+```
+
+Ma*ny-to-many модель оставлена как исследовательское улучшение и основа для дальнейшего перехода к MLM/LogBERT-подходам,
+но сам по себе many-to-many objective на этом датасете не превзошел one-step LSTM при одинаковом NLL-based scoring.*
+
+## 6. Подготовка данных
 ```powershell
 python .\Checkpoint_6\scripts\prepare_hdfs_token_sequences.py `
   --log-path ".\Checkpoint_6\data\HDFS.log" `
@@ -65,7 +123,7 @@ python .\Checkpoint_6\scripts\prepare_hdfs_token_sequences.py `
 
 После подготовки нужно перенести `sequence_token_transformer.joblib` в `Checkpoint_6/FastAPI/model/`.
 
-## 6. Обучение
+## 7. Обучение
 ```powershell
 python .\Checkpoint_6\scripts\train_lstm_token.py `
   --data ".\Checkpoint_6\data\preprocessed\token_seq_out\hdfs_token_sequence_data.npz" `
@@ -80,7 +138,7 @@ python .\Checkpoint_6\scripts\train_lstm_token.py `
   --device cuda
 ```
 
-## 7. API
+## 8. API
 Новый endpoint:
 ```text
 POST /forward/lstm-token

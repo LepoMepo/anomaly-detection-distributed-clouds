@@ -8,11 +8,11 @@
 
 2. Иванов Артём -
 
-3. Богданов Андрей — реализовано улучшение LSTM-пайплайна для Checkpoint 6: many-to-many next-token модель 
-(`lstm_token_model.py`), подготовка окон с target-последовательностями (`prepare_hdfs_token_sequences.py`, 
-`SequenceTokenTransformer`), обучение и подбор validation-порога (`train_lstm_token.py`), метрики и scoring 
-(`lstm_token_metrics.py`), анализ качества (`lstm_token_eval.ipynb`), FastAPI endpoint (`/forward/lstm-token`) 
-и отчет (`LSTM_TOKEN_REPORT.md`). Для итогового anomaly score выбран `nll_max`.
+3. Богданов Андрей - реализовано улучшение LSTM-пайплайна для Checkpoint 6: many-to-many next-token модель, 
+подготовка окон с target-последовательностями, обучение и подбор validation-порога, NLL-based scoring, 
+FastAPI endpoint (`/forward/lstm-token`) и отчет (`LSTM_TOKEN_REPORT.md`). Проведены эксперименты со стратегиями 
+scoring (`top-k miss`, `nll_mean`, `nll_p95`, `nll_max`) и архитектурами many-to-many LSTM; итоговым score выбран 
+`nll_max`, лучшая конфигурация LSTM - `embedding_dim=64`, `hidden_size=256`, `num_layers=1`, `dropout=0.1`.
 
 ## Новые функции
 
